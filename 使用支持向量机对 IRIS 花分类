@@ -1,0 +1,110 @@
+from sklearn import svm               # svm函数需要的
+
+import numpy as np                    # numpy科学计算库
+
+from sklearn import model_selection  
+
+import matplotlib.pyplot as plt       # 画图的库
+
+ 
+
+def iris_type(s):
+
+    it = {b'Iris-setosa': 0, b'Iris-versicolor': 1, b'Iris-virginica': 2}
+
+    return it[s]
+
+ 
+
+path ='D:\学习\iris.txt'                 # 之前保存的文件路径
+
+data = np.loadtxt(path,          # 路径
+
+                  dtype=float,        # 数据类型
+
+                  delimiter=',',       # 数据以什么分割符号分割数据
+
+                  converters={4: iris_type})     # 对某一列数据（第四列）进行某种类型的转换（）
+
+#分开写方便注解
+
+ 
+
+x_Lf, y = np.split(data, (4,), axis=1)
+
+x = x_Lf[:, 0:4]
+
+x_train, x_test, y_train, y_test = model_selection.train_test_split(x, y, random_state=1, test_size=0.3)
+
+ 
+
+ 
+
+clf = svm.SVC(kernel='rbf',   # 核函数
+
+               gamma=0.1,
+
+             decision_function_shape='ovo',     # one vs one 分类问题
+
+              C=0.8)
+
+clf.fit(x_train,np.ravel(y_train,order='C'))
+
+ 
+
+ 
+
+print("Please enter four decimals in order to enter the return interval")
+
+x_tra=[5.1,3.5,1.4,0.2],[5.1,3.5,1.4,0.2]
+
+ 
+
+a=input()
+
+b=input()
+
+c=input()
+
+d=input()
+
+ 
+
+x_tra[0][0]=a
+
+x_tra[0][1]=b
+
+x_tra[0][2]=c
+
+x_tra[0][3]=d
+
+ 
+
+ 
+
+for i in [0,1,2]:  
+
+    y_tra=[i,0]
+
+    k=clf.score(x_tra, y_tra)
+
+    while k==1:
+
+        if(i==0):
+
+            print("Iris-setosa")
+
+           
+
+        if(i==1):
+
+            print("Iris-versicolor")
+
+ 
+
+        if(i==2):
+
+            print("Iris-virginica")
+
+        break
+

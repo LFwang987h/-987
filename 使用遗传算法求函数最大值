@@ -1,0 +1,393 @@
+import matplotlib.pyplot as plt
+
+import numpy as np
+
+from pylab import *
+
+import random
+
+ 
+
+ 
+
+#定义遗传算法参数
+
+pop_size=500    #种群数量（染色体个数）
+
+generation=80  #迭代次数
+
+length=10   #染色体长度，一定要大于十进制范围转为二进制的两倍
+
+pc=0.65        #交配概率
+
+pm=0.01      #变异概率
+
+ 
+
+#如果想调大精度，使结果更接近，调大种群数量和迭代次数即可
+
+ 
+
+ 
+
+#编码，生成染色体组
+
+def genEncoding (pop_size,length):
+
+    pop=[[]]          #二维列表，储存染色体组
+
+    for i in range(pop_size):  #生成500（种群数量）个编码（染色体）
+
+        temp=[]        #储存一个染色体
+
+        for j in range(length):   #生成10（染色体长度）个0/1随机数
+
+            temp.append(random.randint(0,1))
+
+        pop.append(temp)
+
+    return pop[1:]
+
+ 
+
+ 
+
+#解码，（算出染色体的数值，既二进制转化为十进制）
+
+def genDecoding(pop,length):
+
+    temp=[]     #储存各个染色体的值
+
+    for i in range(len(pop)):  #将各个染色体的值算出来
+
+        t=0
+
+        for j in range(length):
+
+            t+=pop[i][j]*math.pow(2,j)   #二进制与十进制的转化公式
+
+        temp.append(t)
+
+    return temp
+
+ 
+
+ 
+
+#计算函数值
+
+def calobjValue(pop,length,lb,ub):     #lb区间最小值，ub区间最大值
+
+    temp =[]    #储存各个染色体的值
+
+    obj_value=[]   #储存各个染色体的函数值
+
+    x_value=[]   #储存各个染色体映射到x 区间的值
+
+    temp =genDecoding(pop,length)
+
+    for i in range(len(temp)):
+
+        x=lb+(ub-lb)*temp[i]/((math.pow(2,length))-1)    #将染色体的x值算出并储存
+
+        x_value.append(x)
+
+        obj_value.append(3*(x-30)**2*(np.sin(x)))  #将染色体的函数值算出并储存
+
+    return obj_value
+
+ 
+
+ 
+
+ # 计算适应度,
+
+ # 适应度函数一般要求非负，可以将目标函数映射成一个值域为非负的函数，
+
+ # 如果目标函数本身就是一个非负的函数，对于求最大值的问题，可以直接使用目标函数作为适应度函数，
+
+ # 但是对于求最小值的问题，一般要将目标函数处理一下，即目标函数值越小，适应度越高且非负这样的映射关系。
+
+ # 数学上有一个sigmoid函数，可以将全体实数映射到（0，1）区间内，不过因为不是均匀分布的，所以需要视具体情况进行转换。
+
+ # 还有一种方法叫归一化处理，这个一般用在分类上面，
+
+ # 不过可以借鉴其思想，如果你能大体推出目标函数的范围，给出上下限，
+
+ # 就可以通过newvalue = (oldvalue -下限)/（上限-下限）进行映射。
+
+ 
+
+def fitness(pop,length,lb,ub):
+
+    obj_value=[]  #染色体的函数值
+
+    fitness_value=[]   #染色体的适应度
+
+    obj_value=calobjValue(pop,length,lb,ub)   #调用函数计算函数值
+
+    for i in range(len(obj_value)):
+
+        fitness_value.append(obj_value[i]-1)
+
+    fitness_value=list(map(abs,fitness_value))    #计算适应度
+
+    return fitness_value
+
+ 
+
+ 
+
+#累积适应度
+
+def cumsum(newfitness_value):
+
+    accumulation_value=[]
+
+    t=0
+
+    for i in range(len(newfitness_value)):
+
+        t+=newfitness_value[i]
+
+        accumulation_value.append(t)
+
+    return accumulation_value
+
+ 
+
+ 
+
+#选择函数
+
+‘’‘
+
+选择(复制)操作。根据种群中个体的适应度大小，通过轮盘赌等方式将适应度高的个体从当前种群中选择出来。其中轮盘赌即是与适应度成正比的概率来确定各个个体遗传到下一代群体中的数量。
+
+      具体步骤如下：
+
+     (1)首先计算出所有个体的适应度总和Σfi。
+
+     (2)其次计算出每个个体的相对适应度大小fi/Σfi，类似于softmax。
+
+     (3)再产生一个0到1之间的随机数，依据随机数出现在上述哪个概率区域内来确定各个个体被选中的次数。
+
+‘‘’
+
+ 
+
+def selection(pop,fitness_value):
+
+    newfitness_value=[]
+
+    accumulation_value=[]
+
+    total_fit=np.sum(fitness_value)    #整体适应性
+
+    for i in range(len(fitness_value)):
+
+        newfitness_value.append(fitness_value[i]/total_fit)
+
+    accumulation_value=cumsum(newfitness_value)
+
+    ms=[]
+
+    for i in range(len(pop)):
+
+        ms.append(random.random())
+
+  # random.random()生成0和1之间的随机浮点数float
+
+    newin=0
+
+    newpop=[]
+
+    for i in range(len(ms)):
+
+        j=0
+
+        for j in range(len(accumulation_value)):
+
+            if ms[i]<accumulation_value[j]:
+
+                t=pop[j]
+
+                newpop.append(t)
+
+                break
+
+    return newpop
+
+ 
+
+ 
+
+#交叉函数
+
+def crossover(pop,fitness_value,pc):
+
+    newpop=[]
+
+    newpop=selection(pop,fitness_value)
+
+    for i in range(len(newpop)-1):
+
+        if random.random()<pc:
+
+            temp1=[]
+
+            temp2=[]
+
+            temp1=newpop[i][4:10]
+
+            temp2=newpop[i+1][4:10]
+
+            newpop[i][4:10]=temp2
+
+            newpop[i+1][4:10]=temp1
+
+    return newpop
+
+ 
+
+ 
+
+#突变
+
+def mutation(pop,fitness_value,pc,pm,length):
+
+    newpop=[]
+
+    newpop=crossover(pop,fitness_value,pc)
+
+    for i in range(len(newpop)):
+
+        if random.random()<pm:
+
+            m1=random.randint(0,length-1)
+
+            if newpop[i][m1]==1:
+
+                newpop[i][m1]=0
+
+            else:
+
+                newpop[i][m1]=1
+
+    return newpop
+
+ 
+
+ 
+
+if __name__ =='__main__':
+
+ 
+
+    #画出函数图
+
+    plt.figure(1)
+
+    lb=0
+
+    ub=15
+
+    x=np.arange(lb,ub,0.01)
+
+    y=-3*(x-30)**2*np.sin(x)
+
+    plt.plot(x,y)
+
+    plt.xlabel("自变量x")
+
+    plt.ylabel("自变量y")
+
+    plt.title('-3*(x-30)**2*sin(x)')
+
+    pop=genEncoding(pop_size,length)
+
+    obj_value=calobjValue(pop,length,lb,ub)
+
+    fitness_value=fitness(pop,length,lb,ub)
+
+    gen=0
+
+    x_value=[]
+
+    best_x=[]
+
+    best_individual=[]
+
+    Generation=[]
+
+    while gen<generation:
+
+        newpop=mutation(pop,fitness_value,pc,pm,length)
+
+        temp=genDecoding(newpop,length)
+
+        for i in range(len(temp)):
+
+            x=ub*temp[i]/((math.pow(2,length))-1)
+
+            x_value.append(x)
+
+        obj_value=calobjValue(newpop,length,lb,ub)
+
+        k=0
+
+        j=0
+
+        best_individual=[]
+
+        best_x=[]
+
+        for i in range(len(obj_value)):
+
+            if k>obj_value[i]:
+
+                k=obj_value[i]
+
+                j=i
+
+                best_individual.append(k)
+
+                best_x.append(x_value[j])
+
+        fitness_value=fitness(newpop,length,lb,ub)
+
+        Generation.append(gen)
+
+        gen=gen+1
+
+ 
+
+y_max = np.min(best_individual)
+
+ 
+
+    x=4.45
+
+    while 3*(x-30)**2*(np.sin(x))-best_individual[j]> 0.01*random.random() :
+
+        x=x+0.01*random.random()
+
+best_x=x
+
+ 
+
+    print("X:")
+
+    print(best_x)
+
+    print("Maximum value of function:")
+
+    print(-1* y_max)
+
+    best_individual.sort(reverse=True)
+
+    plt.scatter(best_x, -1*best_individual[j], s=100, c='red')     #（位置，位置，圈的大小，颜色）
+
+
+    plt.show()
+

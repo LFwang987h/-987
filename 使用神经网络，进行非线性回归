@@ -1,0 +1,108 @@
+import tensorflow as tf
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+
+ 
+
+# 使用numpy生成200个随机点
+
+x_data = np.linspace(-5,5, 200)[:, np.newaxis]  
+
+noise = np.random.normal(0,1, x_data.shape)
+
+y_data = np.square(x_data)+noise-25+np.random.uniform(0,1)
+
+ 
+
+ 
+
+ 
+
+#创建TensorFlow的占位符，用于后面导入数据
+
+xs = tf.placeholder(tf.float32, [None, 1])
+
+ys = tf.placeholder(tf.float32, [None, 1])
+
+ 
+
+# 定义神经网络的中间层，激活函数为relu
+
+w1 = tf.Variable(tf.random_normal([1, 10]))
+
+#tf.random_normal()函数用于从服从指定正太分布的数值中取出指定个数的值
+
+b1 = tf.Variable(tf.zeros([1, 10])+ 0.1)
+
+ip1 = tf.matmul(xs, w1) + b1
+
+out1 = tf.nn.relu(ip1)
+
+ 
+
+# 定义神经网络输出层
+
+w2 = tf.Variable(tf.random_normal([10, 1]))
+
+b2 = tf.Variable(tf.zeros([1, 1])+0.1)
+
+ip2 = tf.matmul(out1, w2) + b2
+
+out2 = ip2
+
+ 
+
+# 二次代价函数,求平均值（平方差，一维）即求标准差
+
+loss = tf.reduce_mean(tf.reduce_sum(tf.square(ys-out2),reduction_indices=[1]))
+
+ 
+
+# 梯度下降法训练,使 loss 达到最小
+
+train_step = tf.train.GradientDescentOptimizer(0.007).minimize(loss)
+
+#学习率是0.007
+
+ 
+
+#初始化参数，创建会话
+
+init = tf.global_variables_initializer()
+
+sess = tf.Session()
+
+sess.run(init)# 上面定义的都没有运算，直到 sess.run 才会开始运算
+
+ 
+
+#开始训练
+
+for i in range(20000):
+
+    sess.run([train_step,loss],feed_dict={xs:x_data, ys:y_data})
+
+
+pred = sess.run(out2, feed_dict={xs:x_data})  # 获取预测值
+
+
+
+#画图
+
+plt.figure(3)
+
+plt.plot(x_data, y_data)
+
+plt.plot(x_data, pred)
+
+plt.figure(2)
+
+plt.plot(x_data, pred,'r-',lw=1)
+
+plt.figure(1)
+
+plt.plot(x_data, y_data)
+
+plt.show()
